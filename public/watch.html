@@ -42,7 +42,7 @@
           events: [],
           sse: null,
           start() {
-            this.sse = new EventSource("http://localhost:3000/sse/abcd") // FIXME: USE FROM PATH
+            this.sse = new EventSource("/sse/abcd") // FIXME: USE FROM PATH
             this.sse.onmessage = (msg) => {
               var d = JSON.parse(msg.data)
               try { d.body = JSON.parse(d.body) } catch(e) {}
