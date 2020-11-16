@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -9,6 +10,11 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 )
+
+type HeadBody struct {
+	Header map[string][]string `json:"header"`
+	Body   string              `json:"body"`
+}
 
 func main() {
 	eb := pubsub.NewEventBus()
@@ -47,7 +53,8 @@ func main() {
 
 		for {
 			d := <-ch
-			fmt.Fprintf(w, "data: %s\n\n", d.Data)
+			d2, _ := json.Marshal(d.Data)
+			fmt.Fprintf(w, "data: %s\n\n", d2)
 			flusher.Flush()
 		}
 	})
@@ -59,9 +66,9 @@ func main() {
 			http.Error(w, "Error reading request body", http.StatusInternalServerError)
 			return
 		}
-		fmt.Println(id, body)
+		fmt.Println(id, r.Header, body)
 
-		eb.Publish(id, body)
+		eb.Publish(id, HeadBody{Header: r.Header, Body: string(body)})
 	})
 
 	http.ListenAndServe(":3000", r)

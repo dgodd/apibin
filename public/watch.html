@@ -5,18 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>API BIN</title>
     <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.7.0/dist/alpine.min.js" defer></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretty-print-json@0.3/dist/pretty-print-json.css">
+    <script src="https://cdn.jsdelivr.net/npm/pretty-print-json@0.3/dist/pretty-print-json.min.js" defer></script>
     <style>
       body { margin:0;padding:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; max-width:1024px;margin-left:auto;margin-right:auto;}
       #main { max-width: 900px; margin:0 auto; }
+
+      .event { padding: 0 0 1em 0; margin-bottom: 1em; border: 1px solid #ccc; }
+      .event .headers { padding: 1em; border-bottom: 1px solid #ccc; }
+      .event .body { padding: 1em; }
     </style>
   </head>
   <body>
     <div x-data="watch()" x-init="start()">
       <h1>API BIN: watch: abcd</h1>
       <div id="events">
-          <template x-for="msg in events">
-            <pre x-text="msg"></pre>
-          </template>
+        <template x-for="msg in events">
+          <div class="event">
+            <div class="headers">
+              <template x-for="[k,v] in Object.entries(msg.header)">
+                <div>
+                  <b x-text="k"></b>
+                  <span x-text="JSON.stringify(v)"></span>
+                </div>
+              </template>
+            </div>
+            <div class="body" x-html="prettyPrintJson.toHtml(msg.body)"></div>
+          </div>
+        </template>
       </div>
     </div>
 
@@ -28,8 +44,11 @@
           start() {
             this.sse = new EventSource("http://localhost:3000/sse/abcd") // FIXME: USE FROM PATH
             this.sse.onmessage = (msg) => {
-              this.events.unshift(msg.data)
+              var d = JSON.parse(msg.data)
+              try { d.body = JSON.parse(d.body) } catch(e) {}
+              this.events.unshift(d)
               // console.log(msg)
+              console.log(d)
             }
           }
         }
