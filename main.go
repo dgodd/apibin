@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/dgodd/apibin/pubsub"
 	"github.com/go-chi/chi"
@@ -26,37 +27,42 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	r.Get("/watch/{id:[a-f09]+}", func(w http.ResponseWriter, r *http.Request) {
-		b, err := ioutil.ReadFile("public/watch.html")
-		if err != nil {
-			http.Error(w, "Error reading file", http.StatusInternalServerError)
-			return
-		}
-		w.Write(b)
-	})
+	r.Route("/", func(r chi.Router) {
+		basicAuthPasswords := map[string]string{os.Getenv("AUTH_USERNAME"): os.Getenv("AUTH_PASSWORD")}
+		r.Use(middleware.BasicAuth("API Bin", basicAuthPasswords))
 
-	r.Get("/sse/{id:[a-f09]+}", func(w http.ResponseWriter, r *http.Request) {
-		id := chi.URLParam(r, "id")
-		flusher, ok := w.(http.Flusher)
-		if !ok {
-			http.Error(w, "Streaming not supported", http.StatusNotAcceptable)
-			return
-		}
+		r.Get("/watch/{id:[a-f09]+}", func(w http.ResponseWriter, r *http.Request) {
+			b, err := ioutil.ReadFile("public/watch.html")
+			if err != nil {
+				http.Error(w, "Error reading file", http.StatusInternalServerError)
+				return
+			}
+			w.Write(b)
+		})
 
-		w.Header().Set("Content-Type", "text/event-stream")
-		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Connection", "keep-alive")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		r.Get("/sse/{id:[a-f09]+}", func(w http.ResponseWriter, r *http.Request) {
+			id := chi.URLParam(r, "id")
+			flusher, ok := w.(http.Flusher)
+			if !ok {
+				http.Error(w, "Streaming not supported", http.StatusNotAcceptable)
+				return
+			}
 
-		ch := make(chan pubsub.DataEvent)
-		eb.Subscribe(id, ch)
+			w.Header().Set("Content-Type", "text/event-stream")
+			w.Header().Set("Cache-Control", "no-cache")
+			w.Header().Set("Connection", "keep-alive")
+			w.Header().Set("Access-Control-Allow-Origin", "*")
 
-		for {
-			d := <-ch
-			d2, _ := json.Marshal(d.Data)
-			fmt.Fprintf(w, "data: %s\n\n", d2)
-			flusher.Flush()
-		}
+			ch := make(chan pubsub.DataEvent)
+			eb.Subscribe(id, ch)
+
+			for {
+				d := <-ch
+				d2, _ := json.Marshal(d.Data)
+				fmt.Fprintf(w, "data: %s\n\n", d2)
+				flusher.Flush()
+			}
+		})
 	})
 
 	r.Post("/post/{id:[a-f09]+}", func(w http.ResponseWriter, r *http.Request) {
