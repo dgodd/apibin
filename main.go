@@ -31,7 +31,7 @@ func main() {
 		basicAuthPasswords := map[string]string{os.Getenv("AUTH_USERNAME"): os.Getenv("AUTH_PASSWORD")}
 		r.Use(middleware.BasicAuth("API Bin", basicAuthPasswords))
 
-		r.Get("/watch/{id:[a-f09]+}", func(w http.ResponseWriter, r *http.Request) {
+		r.Get("/watch/{id:[a-z0-9]+}", func(w http.ResponseWriter, r *http.Request) {
 			b, err := ioutil.ReadFile("public/watch.html")
 			if err != nil {
 				http.Error(w, "Error reading file", http.StatusInternalServerError)
@@ -40,7 +40,7 @@ func main() {
 			w.Write(b)
 		})
 
-		r.Get("/sse/{id:[a-f09]+}", func(w http.ResponseWriter, r *http.Request) {
+		r.Get("/sse/{id:[a-z0-9]+}", func(w http.ResponseWriter, r *http.Request) {
 			id := chi.URLParam(r, "id")
 			flusher, ok := w.(http.Flusher)
 			if !ok {
@@ -65,7 +65,7 @@ func main() {
 		})
 	})
 
-	r.Post("/post/{id:[a-f09]+}", func(w http.ResponseWriter, r *http.Request) {
+	r.Post("/post/{id:[a-z0-9]+}", func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {

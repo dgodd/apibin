@@ -18,7 +18,7 @@
   </head>
   <body>
     <div x-data="watch()" x-init="start()">
-      <h1>API BIN: watch: abcd</h1>
+      <h1>API BIN: watch: <span x-text="name"></span></h1>
       <div id="events">
         <template x-for="msg in events">
           <div class="event">
@@ -39,10 +39,11 @@
     <script>
       function watch() {
         return {
+          name: window.location.pathname.replace("/watch/", ''),
           events: [],
           sse: null,
           start() {
-            this.sse = new EventSource("/sse/abcd") // FIXME: USE FROM PATH
+            this.sse = new EventSource(`/sse/${this.name}`)
             this.sse.onmessage = (msg) => {
               var d = JSON.parse(msg.data)
               try { d.body = JSON.parse(d.body) } catch(e) {}
